@@ -191,7 +191,7 @@ const I18N = {
     histLoading: "Loading…", histErr: "Could not load history. Try again.", histDemo: "History is not available in demo mode.",
     histNote: "Actual times are estimated from GPS positions recorded about once a minute, so they can be a minute or so off.",
     colStop: "Stop", colSched: "Sched.", colActual: "Actual", yourStop: "Your stop", passedAt: "Bus passed at",
-    reached: (n, t) => `Reached ${n} at ${t}`, notRecorded: "Your stop was not recorded on this trip.", dash: "–"
+    reached: (n, t) => `Reached ${n} at ${t}`, notRecorded: "Your stop was not recorded on this trip.", dash: "–", vehicle: id => `Vehicle ${id}`
   },
   pl: {
     demo: "TRYB POKAZOWY: to symulacja, nie prawdziwy autobus.",
@@ -210,7 +210,7 @@ const I18N = {
     histLoading: "Ładowanie…", histErr: "Nie można pobrać historii. Spróbuj ponownie.", histDemo: "Historia nie jest dostępna w trybie pokazowym.",
     histNote: "Rzeczywiste godziny są szacowane z pozycji GPS zapisywanych mniej więcej raz na minutę, więc mogą się różnić o minutę.",
     colStop: "Przystanek", colSched: "Plan", colActual: "Fakt", yourStop: "Twój przystanek", passedAt: "Autobus minął o",
-    reached: (n, t) => `Dojechał do: ${n} o ${t}`, notRecorded: "Nie zarejestrowano Twojego przystanku w tym kursie.", dash: "–"
+    reached: (n, t) => `Dojechał do: ${n} o ${t}`, notRecorded: "Nie zarejestrowano Twojego przystanku w tym kursie.", dash: "–", vehicle: id => `Pojazd ${id}`
   }
 };
 
@@ -501,7 +501,8 @@ function renderLive() {
     const n = A.nextIdx, v = A.v;
     const where = n === 0 ? L.atStart(stopName(A.rows[0].a)) : L.between(stopName(A.rows[n - 1].a), stopName(A.rows[n].a));
     const link = v.lat != null ? ` · <a href="https://www.openstreetmap.org/?mlat=${v.lat}&mlon=${v.lon}#map=16/${v.lat}/${v.lon}" target="_blank" rel="noopener">${L.map}</a>` : "";
-    html += `<div class="sub"><strong>${L.busNow}</strong> ${where}${link}</div>`;
+    const veh = v.id && v.id !== "DEMO" ? ` · ${L.vehicle(v.id)}` : "";
+    html += `<div class="sub"><strong>${L.busNow}</strong> ${where}${link}${veh}</div>`;
   }
   $("answer").innerHTML = html;
 
@@ -564,7 +565,7 @@ function renderHistory() {
     const d = diff(li);
     html += `<div class="row"><span class="sub">${L.reached(stopName(tr.stops[li][0]), hhmm(act[li]))}</span><span class="chip ${classify(d)}">${delayText(d)}</span></div>`;
   }
-  box.innerHTML = html || `<div class="sub">${L.histNoTrips}</div>`;
+  box.innerHTML = (html || `<div class="sub">${L.histNoTrips}</div>`) + (h.raw.vehicle ? `<div class="sub">${L.vehicle(h.raw.vehicle)}</div>` : "");
 
   let rows = `<li class="head"><span></span><span>${L.colStop}</span><span class="c">${L.colSched}</span><span class="c">${L.colActual}</span></li>`;
   tr.stops.forEach(([a], i) => {
