@@ -1,9 +1,14 @@
-<title>Gdzie jest bus?</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Where Is My Bus</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Doto:wght@700;900&display=swap">
 <style>
-/* Layout: jedna kolumna, najpierw odpowiedź dla rodzica (mój przystanek), potem cała trasa jak na słupku przystankowym. */
+/* Layout: one column. Answer for "my stop" first, then the whole route like a bus-stop pole. */
 :root {
+  color-scheme: light;
   --bg: #f1f3ef;
   --surface: #ffffff;
   --fg: #18201b;
@@ -40,10 +45,13 @@
   --bad: #ff9a92; --bad-bg: #44201d; --idle: #9aa69d; --idle-bg: #2a3235;
   color-scheme: dark;
 }
+[hidden] { display: none !important; }
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
+  margin: 0;
   background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.45;
-  padding-block: 16px 40px;
+  padding-block: max(16px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
@@ -54,7 +62,7 @@ button, select, input { font: inherit; color: inherit; }
 .demo { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
 .fail { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
 
-/* tablica kierunku autobusu */
+/* bus destination blind */
 .blind { background: var(--blind-bg); color: var(--blind-fg); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px; }
 .blind .num { font-family: var(--font-blind); font-weight: 900; font-size: 56px; line-height: 1; letter-spacing: 2px; }
 .blind .dest { font-family: var(--font-blind); font-weight: 700; font-size: 18px; line-height: 1.2; text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; }
@@ -64,6 +72,10 @@ button, select, input { font: inherit; color: inherit; }
 label.field { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
 select, input[type="search"] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 16px; min-width: 0; }
 input[type="search"] { padding-block: 9px; }
+
+.tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--idle-bg); border-radius: 10px; padding: 4px; gap: 4px; }
+.tabs button { border: 0; background: transparent; padding: 10px 8px; border-radius: 7px; cursor: pointer; font-weight: 700; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.18); }
 
 .answer { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 10px; }
 .answer .k { font-size: 14px; color: var(--muted); }
@@ -77,7 +89,7 @@ input[type="search"] { padding-block: 9px; }
 .chip.bad { background: var(--bad-bg); color: var(--bad); }
 .chip.idle { background: var(--idle-bg); color: var(--idle); }
 
-/* trasa */
+/* route */
 .route { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .route li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; position: relative; border-top: 1px solid var(--line); }
 .route li:first-child { border-top: 0; }
@@ -91,17 +103,29 @@ input[type="search"] { padding-block: 9px; }
 .route li .nm small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
 .times { text-align: right; font-variant-numeric: tabular-nums; font-size: 15px; display: grid; }
 .times s { color: var(--muted); font-size: 13px; text-decoration-thickness: 1px; }
-.times .e.ok { color: var(--ok); font-weight: 700; } .times .e.warn { color: var(--warn); font-weight: 700; } .times .e.bad { color: var(--bad); font-weight: 700; }
+.times .e.ok, .hist .e.ok { color: var(--ok); font-weight: 700; }
+.times .e.warn, .hist .e.warn { color: var(--warn); font-weight: 700; }
+.times .e.bad, .hist .e.bad { color: var(--bad); font-weight: 700; }
 .route li.bus { background: var(--accent); color: var(--accent-fg); font-weight: 700; padding-block: 8px; }
 .route li.bus::before { display: none; }
 .route li.bus .glyph { font-family: var(--font-blind); font-weight: 900; font-size: 18px; }
 
+/* history table: stop | scheduled | actual */
+.hist li { grid-template-columns: 22px minmax(0, 1fr) 54px 74px; }
+.hist li.head { color: var(--muted); font-size: 13px; padding-block: 8px; background: var(--idle-bg); }
+.hist li.head::before { display: none; }
+.hist .c { text-align: right; font-variant-numeric: tabular-nums; font-size: 15px; display: grid; }
+.hist .c small { font-size: 12px; font-weight: 400; }
+.hist .none { color: var(--muted); }
+
+.note { background: var(--idle-bg); border-radius: 8px; padding: 8px 12px; font-size: 14px; color: var(--muted); margin: 0; }
 footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
 footer .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
 footer button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
 @media (prefers-reduced-motion: no-preference) { .big { transition: color .3s; } }
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <div id="demo" class="demo" hidden></div>
   <div id="fail" class="fail" hidden></div>
@@ -117,21 +141,58 @@ footer button { border: 1px solid var(--line); background: var(--surface); borde
     <label class="field"><span id="stopLabel"></span><select id="stopSel"></select></label>
     <label class="field" id="runField" hidden><span id="runLabel"></span><select id="runSel"></select></label>
   </div>
-  <section class="answer" id="answer" aria-live="polite"></section>
-  <ol class="route" id="route"></ol>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tabLive" aria-selected="true"></button>
+    <button type="button" role="tab" id="tabHist" aria-selected="false"></button>
+  </div>
+
+  <div id="livePanel" class="wrap">
+    <section class="answer" id="answer" aria-live="polite"></section>
+    <ol class="route" id="route"></ol>
+  </div>
+
+  <div id="histPanel" class="wrap" hidden>
+    <div class="controls">
+      <label class="field" id="hDateField"><span id="hDateLabel"></span><select id="hDate"></select></label>
+      <label class="field" id="hTripField"><span id="hTripLabel"></span><select id="hTrip"></select></label>
+    </div>
+    <section class="answer" id="hSummary" aria-live="polite"></section>
+    <ol class="route hist" id="hRoute"></ol>
+    <p class="note" id="hNote"></p>
+  </div>
+
   <footer>
     <div id="updated"></div>
-    <div class="bar"><span id="source"></span><button id="langBtn" type="button">EN</button></div>
+    <div class="bar"><span id="source"></span><button id="langBtn" type="button">PL</button></div>
   </footer>
 </div>
 
 <script>
-/* ============ USTAWIENIA ============
-   API_BASE: adres Twojego Cloudflare Workera (patrz README). Puste = tryb pokazowy (symulacja).
-   Rozkłady: plik services.json obok strony, tworzony skryptem tools/txc_to_json.py z plików BODS. */
+/* ============ SETTINGS ============
+   API_BASE: address of your Cloudflare Worker. Empty = demo mode (simulated bus).
+   Timetables: services.json next to this page, made with tools/txc_to_json.py from BODS files. */
 const CONFIG = { API_BASE: "https://schoolbus.jakubspringer32.workers.dev", SERVICES_URL: "services.json", POLL_MS: 20000, STALE_MS: 150000 };
 
 const I18N = {
+  en: {
+    demo: "DEMO MODE: this is a simulation, not a real bus.",
+    service: "Service", search: "Search services (number or name)…", school: "School", regular: "Regular", schoolTag: "school",
+    pick: "Your stop", pickPh: "Choose a stop…", run: "Trip (time at this stop)",
+    willBe: "Bus due at your stop at about", planned: "Scheduled", pickHint: "Choose your stop to see when the bus arrives.",
+    onTime: "On time", late: n => `${n} min late`, early: n => `${n} min early`, passed: "Already passed",
+    noBus: "Bus not visible in the system", noBusSub: "It may not have left yet, or the trip is not running today. Check again shortly.",
+    noDelay: "Position unknown, delay not reported", notRunning: "No trip running now", notRunningSub: n => `First stop of this trip: ${n}.`,
+    notToday: "This trip does not run today", nextRun: d => `Next runs: ${d}.`,
+    busNow: "Bus is now", between: (a, b) => `between: ${a} → ${b}`, atStart: s => `before: ${s}`, map: "View on map",
+    here: "BUS", updated: s => `Data ${s} s old`, stale: "No fresh data from the bus", err: "Could not load data. Try again.",
+    source: "Data: Bus Open Data Service (DfT).", loadErr: "Could not load timetables (services.json).", dateLoc: "en-GB",
+    live: "Live", history: "History", histDate: "Day", histTrip: "Trip",
+    histNoDays: "No trips recorded yet. Recording starts with the next school run.", histNoTrips: "No recorded trips for this day.",
+    histLoading: "Loading…", histErr: "Could not load history. Try again.", histDemo: "History is not available in demo mode.",
+    histNote: "Actual times are estimated from GPS positions recorded about once a minute, so they can be a minute or so off.",
+    colStop: "Stop", colSched: "Sched.", colActual: "Actual", yourStop: "Your stop", passedAt: "Bus passed at",
+    reached: (n, t) => `Reached ${n} at ${t}`, notRecorded: "Your stop was not recorded on this trip.", dash: "–"
+  },
   pl: {
     demo: "TRYB POKAZOWY: to symulacja, nie prawdziwy autobus.",
     service: "Linia", search: "Szukaj linii (numer lub nazwa)…", school: "Szkolne", regular: "Zwykłe", schoolTag: "szkolny",
@@ -143,41 +204,36 @@ const I18N = {
     notToday: "Dziś ten kurs nie jedzie", nextRun: d => `Następny raz: ${d}.`,
     busNow: "Autobus jest teraz", between: (a, b) => `między: ${a} → ${b}`, atStart: s => `przed przystankiem: ${s}`, map: "Zobacz na mapie",
     here: "AUTOBUS", updated: s => `Dane sprzed ${s} s`, stale: "Brak świeżych danych z autobusu", err: "Nie można pobrać danych. Spróbuj ponownie.",
-    source: "Dane: Bus Open Data Service (DfT).", loadErr: "Nie można wczytać rozkładów (services.json).", dateLoc: "pl-PL"
-  },
-  en: {
-    demo: "DEMO MODE: this is a simulation, not a real bus.",
-    service: "Service", search: "Search services (number or name)…", school: "School", regular: "Regular", schoolTag: "school",
-    pick: "Your stop", pickPh: "Choose a stop…", run: "Trip (time at this stop)",
-    willBe: "Bus due at your stop at about", planned: "Scheduled", pickHint: "Choose your stop and I will show when the bus arrives.",
-    onTime: "On time", late: n => `${n} min late`, early: n => `${n} min early`, passed: "Already passed",
-    noBus: "Bus not visible in the system", noBusSub: "It may not have left yet, or the trip is not running today. Check again shortly.",
-    noDelay: "Position unknown, delay not reported", notRunning: "No trip running now", notRunningSub: n => `First stop of this trip: ${n}.`,
-    notToday: "This trip does not run today", nextRun: d => `Next runs: ${d}.`,
-    busNow: "Bus is now", between: (a, b) => `between: ${a} → ${b}`, atStart: s => `before: ${s}`, map: "View on map",
-    here: "BUS", updated: s => `Data ${s} s old`, stale: "No fresh data from the bus", err: "Could not load data. Try again.",
-    source: "Data: Bus Open Data Service (DfT).", loadErr: "Could not load timetables (services.json).", dateLoc: "en-GB"
+    source: "Dane: Bus Open Data Service (DfT).", loadErr: "Nie można wczytać rozkładów (services.json).", dateLoc: "pl-PL",
+    live: "Na żywo", history: "Historia", histDate: "Dzień", histTrip: "Kurs",
+    histNoDays: "Brak zapisanych kursów. Zapis zaczyna się od następnego kursu szkolnego.", histNoTrips: "Brak zapisanych kursów tego dnia.",
+    histLoading: "Ładowanie…", histErr: "Nie można pobrać historii. Spróbuj ponownie.", histDemo: "Historia nie jest dostępna w trybie pokazowym.",
+    histNote: "Rzeczywiste godziny są szacowane z pozycji GPS zapisywanych mniej więcej raz na minutę, więc mogą się różnić o minutę.",
+    colStop: "Przystanek", colSched: "Plan", colActual: "Fakt", yourStop: "Twój przystanek", passedAt: "Autobus minął o",
+    reached: (n, t) => `Dojechał do: ${n} o ${t}`, notRecorded: "Nie zarejestrowano Twojego przystanku w tym kursie.", dash: "–"
   }
 };
 
 const $ = id => document.getElementById(id);
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
 const demoMode = !CONFIG.API_BASE;
-const S = { lang: store.get("gb:lang") || "pl", services: [], svc: null, stop: null, tripId: null, vehicles: [], fetchedAt: null, error: false, demoT0: Date.now() };
+const S = { lang: store.get("gb:lang") === "pl" ? "pl" : "en", mode: "live", services: [], svc: null, stop: null, tripId: null, vehicles: [], fetchedAt: null, error: false, demoT0: Date.now() };
+const HIST = { svcId: null, days: [], date: null, trips: [], sel: null, state: "idle" }; // state: idle | loading | ok | err
 const t = () => I18N[S.lang];
 const trip = () => S.svc && S.svc.trips.find(x => x.id === S.tripId) || null;
 const stopInfo = code => S.svc.stops[code] || { name: code, locality: "" };
 const stopName = code => { const s = stopInfo(code); return (s.locality ? s.locality + " – " : "") + s.name; };
 
-/* ---- czas ---- */
+/* ---- time ---- */
 const hhmm = ms => new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const londonHHMM = ms => new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 function schedMs(str, baseMs) { const [h, m] = str.split(":").map(Number); const d = new Date(baseMs); d.setHours(h, m, 0, 0); return d.getTime(); }
 const ymd = ms => { const d = new Date(ms); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 function nowMs() {
   const tr = trip();
   if (!demoMode || !tr) return Date.now();
   const st = tr.stops, a = schedMs(st[0][1], Date.now()) - 120000, b = schedMs(st[st.length - 1][1], Date.now()) + 120000;
-  return a + (((Date.now() - S.demoT0) * 15) % (b - a)); // 15x szybciej, zapętlone
+  return a + (((Date.now() - S.demoT0) * 15) % (b - a)); // 15x faster, looping
 }
 function runsOn(tr, ms) {
   if (demoMode) return true;
@@ -195,13 +251,13 @@ function nextRunText(tr, ms) {
   return null;
 }
 
-/* ---- pozycja na trasie ---- */
-function project(pts, lat, lon, now) {
+/* ---- position along the route ---- */
+function project(pts, lat, lon, now, win = 25) {
   const k0 = Math.cos(lat * Math.PI / 180);
   const X = p => [(p.lon - lon) * k0 * 111320, (p.lat - lat) * 110540];
   let best = null;
   for (let i = 0; i < pts.length - 1; i++) {
-    if (now < pts[i].ms - 25 * 60000 || now > pts[i + 1].ms + 25 * 60000) continue;
+    if (now < pts[i].ms - win * 60000 || now > pts[i + 1].ms + win * 60000) continue;
     const A = X(pts[i]), B = X(pts[i + 1]), dx = B[0] - A[0], dy = B[1] - A[1], l2 = dx * dx + dy * dy;
     const f = l2 ? Math.max(0, Math.min(1, -(A[0] * dx + A[1] * dy) / l2)) : 0;
     const dist = Math.hypot(A[0] + f * dx, A[1] + f * dy);
@@ -212,7 +268,7 @@ function project(pts, lat, lon, now) {
   return { p: best.i + best.f, schedAt: a.ms + best.f * (b.ms - a.ms), dist: best.dist };
 }
 
-/* ---- dane na żywo ---- */
+/* ---- live data ---- */
 function pickVehicle(tr, now) {
   const first = schedMs(tr.stops[0][1], now);
   const ok = S.vehicles.filter(v => v.recorded && Date.now() - v.recorded < 600000 &&
@@ -244,7 +300,12 @@ async function poll() {
   renderLive();
 }
 
-/* ---- logika statusu ---- */
+/* ---- live status logic ---- */
+function classify(d) { return d > 120 ? "bad" : (d > 60 || d < -60) ? "warn" : "ok"; }
+function delayText(d) {
+  const L = t(), m = Math.round(d / 60);
+  return d > 60 ? L.late(m) : d < -60 ? L.early(Math.abs(m)) : L.onTime;
+}
 function analyse(now) {
   const tr = trip();
   const pts = tr.stops.map(([a, tm]) => ({ a, ...stopInfo(a), ms: schedMs(tm, now) }));
@@ -256,14 +317,14 @@ function analyse(now) {
     const pr = v.lat != null ? project(pts, v.lat, v.lon, now) : null;
     if (pr) prog = pr.p;
     d = v.delaySec != null ? v.delaySec : pr ? Math.round((v.posTime - pr.schedAt) / 1000) : null;
-    if (d != null && prog === 0 && d < 0) d = 0; // autobus czeka na pierwszym przystanku: nie może być "przed czasem"
+    if (d != null && prog === 0 && d < 0) d = 0; // waiting at the first stop cannot be "early"
   }
   const rows = pts.map((p, i) => {
     const exp = d != null ? p.ms + d * 1000 : null;
     const passed = !!v && (prog != null ? i <= prog : exp != null && exp < now - 30000);
     return { i, a: p.a, ms: p.ms, exp, passed };
   });
-  const status = v && d != null ? (d > 120 ? "bad" : d > 60 || d < -60 ? "warn" : "ok") : "idle";
+  const status = v && d != null ? classify(d) : "idle";
   return { rows, runs, inWindow, v, d, prog, status, first, nextIdx: v ? rows.findIndex(r => !r.passed) : -1 };
 }
 function verdict(row, A) {
@@ -273,13 +334,83 @@ function verdict(row, A) {
   if (!A.v) return { cls: "idle", text: L.noBus };
   if (A.d == null) return { cls: "idle", text: L.noDelay };
   if (row.passed) return { cls: "idle", text: L.passed };
-  const m = Math.round(A.d / 60);
-  if (A.d > 60) return { cls: A.d > 120 ? "bad" : "warn", text: L.late(m) };
-  if (A.d < -60) return { cls: "warn", text: L.early(Math.abs(m)) };
-  return { cls: "ok", text: L.onTime };
+  return { cls: classify(A.d), text: delayText(A.d) };
 }
 
-/* ---- wybór usługi / przystanku / kursu ---- */
+/* ---- history: when did the bus really pass each stop ---- */
+function segLen(a, b) { const k = Math.cos(a.lat * Math.PI / 180); return Math.hypot((b.lon - a.lon) * k * 111320, (b.lat - a.lat) * 110540); }
+function computeActuals(tr, samples) {
+  const n = tr.stops.length, out = new Array(n).fill(null);
+  if (!samples.length) return out;
+  const base = samples[0][0];
+  const pts = tr.stops.map(([a, tm]) => ({ ...stopInfo(a), ms: schedMs(tm, base) }));
+  // "reached" = within about 40 m of the stop, so a bus standing a few metres short still counts
+  const eps = i => Math.min(0.5, 40 / Math.max(1, segLen(pts[Math.max(0, i - 1)], pts[Math.max(1, i)])));
+  const seq = []; let top = 0;
+  for (const [tm, lat, lon] of samples) {
+    const pr = project(pts, lat, lon, tm, 60);
+    if (!pr) continue;
+    top = Math.max(top, pr.p); seq.push([tm, top]);
+  }
+  if (!seq.length) return out;
+  let k0 = -1; seq.forEach(([, p], k) => { if (p <= eps(1)) k0 = k; });
+  if (k0 >= 0) out[0] = seq[k0][0];
+  for (let i = 1; i < n; i++) {
+    const k = seq.findIndex(([, p]) => p >= i - eps(i));
+    if (k > 0) {
+      const [t0, p0] = seq[k - 1], [t1, p1] = seq[k], target = i - eps(i);
+      const f = p1 === p0 ? 1 : Math.min(1, Math.max(0, (target - p0) / (p1 - p0)));
+      out[i] = t0 + f * (t1 - t0);
+    }
+  }
+  return out;
+}
+
+async function histFetch(path) {
+  const res = await fetch(CONFIG.API_BASE + path);
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+const histQuery = () => `line=${encodeURIComponent(S.svc.line)}&operator=${encodeURIComponent(S.svc.operator.noc || "")}`;
+async function histLoadDays() {
+  if (demoMode || !S.svc) { HIST.state = "idle"; renderHistory(); return; }
+  const svc = S.svc;
+  HIST.state = "loading"; renderHistory();
+  try {
+    const days = (await histFetch("/api/history/days?" + histQuery())).days || [];
+    if (svc !== S.svc) return;
+    HIST.svcId = svc.id; HIST.days = days;
+    if (!days.includes(HIST.date)) HIST.date = days[0] || null;
+    if (HIST.date) { await histLoadDay(); return; }
+    HIST.trips = []; HIST.sel = null; HIST.state = "ok";
+  } catch (e) { HIST.state = "err"; }
+  renderHistory();
+}
+async function histLoadDay() {
+  const svc = S.svc;
+  HIST.state = "loading"; renderHistory();
+  try {
+    const raw = (await histFetch(`/api/history?${histQuery()}&date=${HIST.date}`)).trips || [];
+    if (svc !== S.svc) return;
+    HIST.trips = raw.map(r => {
+      const dep = londonHHMM(r.aimed);
+      const tr = svc.trips.find(x => x.depart === dep && (!r.originRef || x.stops[0][0] === r.originRef));
+      return tr ? { raw: r, trip: tr, dep } : null;
+    }).filter(Boolean).sort((a, b) => a.raw.aimed - b.raw.aimed);
+    histPickTrip(true);
+    HIST.state = "ok";
+  } catch (e) { HIST.state = "err"; }
+  renderHistory();
+}
+function histPickTrip(force) {
+  if (!HIST.trips.length) { HIST.sel = null; return; }
+  const has = h => h.trip.stops.some(([a]) => a === S.stop);
+  if (!force && HIST.sel != null && HIST.trips[HIST.sel] && has(HIST.trips[HIST.sel])) return;
+  const i = HIST.trips.findIndex(has);
+  HIST.sel = i >= 0 ? i : 0;
+}
+
+/* ---- selects ---- */
 function renderServiceSelect() {
   const L = t(), q = $("svcQ").value.trim().toLowerCase();
   const match = s => !q || (s.line + " " + (s.description || "") + " " + (s.operator.name || "")).toLowerCase().includes(q);
@@ -325,13 +456,22 @@ function setService(id, fresh) {
   const known = S.svc.trips.some(tr => tr.stops.some(([a]) => a === saved));
   S.stop = known ? saved : (demoMode && S.svc.stops["43000632501"] ? "43000632501" : null);
   S.vehicles = []; S.demoT0 = Date.now();
+  HIST.svcId = null; HIST.date = null; HIST.trips = []; HIST.sel = null; HIST.state = "idle";
   renderServiceSelect(); renderStopSelect(); chooseTrip(); renderStatic(); renderLive(); poll();
+  if (S.mode === "hist") histLoadDays();
+}
+function setMode(m) {
+  S.mode = m;
+  $("livePanel").hidden = m !== "live"; $("histPanel").hidden = m !== "hist";
+  $("tabLive").setAttribute("aria-selected", String(m === "live")); $("tabHist").setAttribute("aria-selected", String(m === "hist"));
+  if (m === "hist") { if (HIST.svcId !== S.svc.id) histLoadDays(); else { histPickTrip(false); renderHistory(); } }
 }
 
 /* ---- render ---- */
 function renderStatic() {
   const L = t(), tr = trip(), sv = S.svc;
   $("svcLabel").textContent = L.service; $("stopLabel").textContent = L.pick;
+  $("tabLive").textContent = L.live; $("tabHist").textContent = L.history;
   $("num").textContent = sv.line;
   if (tr) { $("dest").textContent = tr.dest; $("via").textContent = `${stopInfo(tr.stops[0][0]).locality} → ${stopInfo(tr.stops[tr.stops.length - 1][0]).locality}`; }
   else { $("dest").textContent = sv.description || ""; $("via").textContent = sv.operator.name || ""; }
@@ -374,8 +514,8 @@ function renderLive() {
       : `<span class="${r.exp != null && !r.passed ? "e ok" : ""}">${hhmm(r.ms)}</span>`;
     rows += `<li class="${cls}"><span class="dot"></span><span class="nm">${st.name}<small>${st.locality}</small></span><span class="times">${cell}</span></li>`;
   });
+  if (A.v && A.nextIdx < 0) rows += `<li class="bus"><span class="glyph">▶</span><span>${L.here}</span><span></span></li>`;
   $("route").innerHTML = rows;
-  if (A.v && A.nextIdx < 0) $("route").insertAdjacentHTML("beforeend", `<li class="bus"><span class="glyph">▶</span><span>${L.here}</span><span></span></li>`);
 
   let up = "";
   if (S.error) up = L.err;
@@ -386,17 +526,72 @@ function renderLive() {
   $("updated").textContent = up;
 }
 
-/* ---- zdarzenia ---- */
+function renderHistory() {
+  if (!S.svc) return;
+  const L = t(), box = $("hSummary"), list = $("hRoute"), msg = s => { box.innerHTML = `<div class="sub">${s}</div>`; list.innerHTML = ""; };
+  $("hDateLabel").textContent = L.histDate; $("hTripLabel").textContent = L.histTrip; $("hNote").textContent = L.histNote;
+  $("hDateField").hidden = true; $("hTripField").hidden = true;
+  if (demoMode) return msg(L.histDemo);
+  if (HIST.state === "loading") return msg(L.histLoading);
+  if (HIST.state === "err") return msg(L.histErr);
+  if (!HIST.days.length) return msg(L.histNoDays);
+
+  const dl = d => new Date(d + "T12:00:00Z").toLocaleDateString(L.dateLoc, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  $("hDateField").hidden = false;
+  $("hDate").innerHTML = HIST.days.map(d => `<option value="${d}"${d === HIST.date ? " selected" : ""}>${dl(d)}</option>`).join("");
+  const h = HIST.trips[HIST.sel];
+  if (!h) return msg(L.histNoTrips);
+  if (HIST.trips.length > 1) {
+    $("hTripField").hidden = false;
+    $("hTrip").innerHTML = HIST.trips.map((x, i) => `<option value="${i}"${i === HIST.sel ? " selected" : ""}>${x.dep} → ${x.trip.dest}</option>`).join("");
+  }
+
+  const tr = h.trip, act = computeActuals(tr, h.raw.samples), base = h.raw.samples[0][0];
+  const sched = tr.stops.map(([, tm]) => schedMs(tm, base));
+  const diff = i => act[i] == null ? null : Math.round((act[i] - sched[i]) / 1000);
+  const mi = tr.stops.findIndex(([a]) => a === S.stop), li = tr.stops.length - 1;
+
+  let html = "";
+  if (mi >= 0 && act[mi] != null) {
+    const d = diff(mi);
+    html += `<div class="k">${L.yourStop}: ${stopName(S.stop)}</div>
+      <div class="row"><span class="big">${hhmm(act[mi])}</span><span class="chip ${classify(d)}">${delayText(d)}</span></div>
+      <div class="sub">${L.planned} ${hhmm(sched[mi])} · ${L.passedAt} ${hhmm(act[mi])}</div>`;
+  } else if (mi >= 0) {
+    html += `<div class="k">${L.yourStop}: ${stopName(S.stop)}</div><div class="sub">${L.notRecorded}</div>`;
+  }
+  if (act[li] != null && li !== mi) {
+    const d = diff(li);
+    html += `<div class="row"><span class="sub">${L.reached(stopName(tr.stops[li][0]), hhmm(act[li]))}</span><span class="chip ${classify(d)}">${delayText(d)}</span></div>`;
+  }
+  box.innerHTML = html || `<div class="sub">${L.histNoTrips}</div>`;
+
+  let rows = `<li class="head"><span></span><span>${L.colStop}</span><span class="c">${L.colSched}</span><span class="c">${L.colActual}</span></li>`;
+  tr.stops.forEach(([a], i) => {
+    const st = stopInfo(a), d = diff(i);
+    const cell = d == null ? `<span class="none">${L.dash}</span>`
+      : `<span class="e ${classify(d)}">${hhmm(act[i])}</span><small class="e ${classify(d)}">${Math.round(d / 60) > 0 ? "+" : Math.round(d / 60) < 0 ? "−" : ""}${Math.abs(Math.round(d / 60))} min</small>`;
+    rows += `<li class="${a === S.stop ? "mine" : ""}"><span class="dot"></span><span class="nm">${st.name}<small>${st.locality}</small></span><span class="c">${hhmm(sched[i])}</span><span class="c">${cell}</span></li>`;
+  });
+  list.innerHTML = rows;
+}
+
+/* ---- events ---- */
 $("svcSel").addEventListener("change", e => setService(e.target.value, true));
 $("svcQ").addEventListener("input", renderServiceSelect);
 $("stopSel").addEventListener("change", e => {
   S.stop = e.target.value || null; if (S.stop) store.set("gb:stop:" + S.svc.id, S.stop);
   S.demoT0 = Date.now(); chooseTrip(); renderStatic(); renderLive(); poll();
+  histPickTrip(false); if (S.mode === "hist") renderHistory();
 });
 $("runSel").addEventListener("change", e => { S.tripId = e.target.value; S.demoT0 = Date.now(); renderStatic(); renderLive(); poll(); });
+$("tabLive").addEventListener("click", () => setMode("live"));
+$("tabHist").addEventListener("click", () => setMode("hist"));
+$("hDate").addEventListener("change", e => { HIST.date = e.target.value; histLoadDay(); });
+$("hTrip").addEventListener("change", e => { HIST.sel = +e.target.value; renderHistory(); });
 $("langBtn").addEventListener("click", () => {
   S.lang = S.lang === "pl" ? "en" : "pl"; store.set("gb:lang", S.lang);
-  if (S.svc) { renderServiceSelect(); renderStopSelect(); chooseTrip(S.tripId); renderStatic(); renderLive(); }
+  if (S.svc) { renderServiceSelect(); renderStopSelect(); chooseTrip(S.tripId); renderStatic(); renderLive(); renderHistory(); }
 });
 
 (async function start() {
@@ -408,8 +603,11 @@ $("langBtn").addEventListener("click", () => {
   } catch (e) {
     $("fail").hidden = false; $("fail").textContent = t().loadErr; return;
   }
+  setMode("live");
   setService(store.get("gb:svc") || S.services[0].id, false);
   setInterval(renderLive, 1000);
   setInterval(poll, demoMode ? 5000 : CONFIG.POLL_MS);
 })();
 </script>
+</body>
+</html>
