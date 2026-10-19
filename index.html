@@ -6,7 +6,7 @@
 <title>Where Is My Bus</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Doto:wght@700;900&display=swap">
 <style>
-/* Layout: one column. Answer for "my stop" first, then the whole route like a bus-stop pole. */
+/* Layout: one column. Answer for "my stop" first (scheduled + expected time), then the whole route like a bus-stop pole. */
 :root {
   color-scheme: light;
   --bg: #f1f3ef;
@@ -73,7 +73,7 @@ label.field { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min
 select, input[type="search"] { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 16px; min-width: 0; }
 input[type="search"] { padding-block: 9px; }
 
-.tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--idle-bg); border-radius: 10px; padding: 4px; gap: 4px; }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--idle-bg); border-radius: 10px; padding: 4px; gap: 4px; }
 .tabs button { border: 0; background: transparent; padding: 10px 8px; border-radius: 7px; cursor: pointer; font-weight: 700; color: var(--muted); }
 .tabs button[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.18); }
 
@@ -89,9 +89,18 @@ input[type="search"] { padding-block: 9px; }
 .chip.bad { background: var(--bad-bg); color: var(--bad); }
 .chip.idle { background: var(--idle-bg); color: var(--idle); }
 
-/* route */
+/* two times: scheduled | expected (or actual in History) */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pair .cell { display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--idle-bg); }
+.pair .cell.ok { background: var(--ok-bg); } .pair .cell.warn { background: var(--warn-bg); } .pair .cell.bad { background: var(--bad-bg); }
+.pair .lbl { font-size: 13px; color: var(--muted); }
+.pair .cell.ok .lbl { color: var(--ok); } .pair .cell.warn .lbl { color: var(--warn); } .pair .cell.bad .lbl { color: var(--bad); }
+.pair .big { font-size: 40px; line-height: 1.05; }
+.tm.ok { color: var(--ok); } .tm.warn { color: var(--warn); } .tm.bad { color: var(--bad); } .tm.idle { color: var(--muted); }
+
+/* route table: stop | scheduled | expected */
 .route { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-.route li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; position: relative; border-top: 1px solid var(--line); }
+.route li { display: grid; grid-template-columns: 22px minmax(0, 1fr) 54px 78px; gap: 10px; align-items: center; padding: 10px 14px; position: relative; border-top: 1px solid var(--line); }
 .route li:first-child { border-top: 0; }
 .route li::before { content: ""; position: absolute; left: 24px; top: 0; bottom: 0; width: 3px; background: var(--line); }
 .route li:first-child::before { top: 50%; } .route li:last-child::before { bottom: 50%; }
@@ -101,28 +110,31 @@ input[type="search"] { padding-block: 9px; }
 .route li.mine { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); font-weight: 700; }
 .route li .nm { overflow-wrap: anywhere; }
 .route li .nm small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
-.times { text-align: right; font-variant-numeric: tabular-nums; font-size: 15px; display: grid; }
-.times s { color: var(--muted); font-size: 13px; text-decoration-thickness: 1px; }
-.times .e.ok, .hist .e.ok { color: var(--ok); font-weight: 700; }
-.times .e.warn, .hist .e.warn { color: var(--warn); font-weight: 700; }
-.times .e.bad, .hist .e.bad { color: var(--bad); font-weight: 700; }
-.route li.bus { background: var(--accent); color: var(--accent-fg); font-weight: 700; padding-block: 8px; }
+.route .c { text-align: right; font-variant-numeric: tabular-nums; font-size: 15px; display: grid; }
+.route .c small { font-size: 12px; font-weight: 400; }
+.route .none { color: var(--muted); }
+.route .e.ok { color: var(--ok); font-weight: 700; }
+.route .e.warn { color: var(--warn); font-weight: 700; }
+.route .e.bad { color: var(--bad); font-weight: 700; }
+.route li.head { color: var(--muted); font-size: 13px; padding-block: 8px; background: var(--idle-bg); }
+.route li.head::before { display: none; }
+.route li.bus { grid-template-columns: 22px minmax(0, 1fr); background: var(--accent); color: var(--accent-fg); font-weight: 700; padding-block: 8px; }
 .route li.bus::before { display: none; }
 .route li.bus .glyph { font-family: var(--font-blind); font-weight: 900; font-size: 18px; }
 
-/* history table: stop | scheduled | actual */
-.hist li { grid-template-columns: 22px minmax(0, 1fr) 54px 74px; }
-.hist li.head { color: var(--muted); font-size: 13px; padding-block: 8px; background: var(--idle-bg); }
-.hist li.head::before { display: none; }
-.hist .c { text-align: right; font-variant-numeric: tabular-nums; font-size: 15px; display: grid; }
-.hist .c small { font-size: 12px; font-weight: 400; }
-.hist .none { color: var(--muted); }
+/* map */
+.mapbox { height: min(62vh, 520px); min-height: 320px; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; isolation: isolate; background: var(--idle-bg); }
+.mapbar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mapbar button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 12px; cursor: pointer; font-weight: 700; }
+.mapbar button:disabled { opacity: .5; cursor: default; }
+.busicon span { display: flex; align-items: center; justify-content: center; width: 44px; height: 28px; border-radius: 8px; background: var(--accent); color: var(--accent-fg);
+  border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); font: 900 15px var(--font-body); }
+.leaflet-container { font-family: var(--font-body); }
 
 .note { background: var(--idle-bg); border-radius: 8px; padding: 8px 12px; font-size: 14px; color: var(--muted); margin: 0; }
 footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
 footer .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
 footer button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
-@media (prefers-reduced-motion: no-preference) { .big { transition: color .3s; } }
 </style>
 </head>
 <body>
@@ -143,6 +155,7 @@ footer button { border: 1px solid var(--line); background: var(--surface); borde
   </div>
   <div class="tabs" role="tablist">
     <button type="button" role="tab" id="tabLive" aria-selected="true"></button>
+    <button type="button" role="tab" id="tabMap" aria-selected="false"></button>
     <button type="button" role="tab" id="tabHist" aria-selected="false"></button>
   </div>
 
@@ -151,13 +164,23 @@ footer button { border: 1px solid var(--line); background: var(--surface); borde
     <ol class="route" id="route"></ol>
   </div>
 
+  <div id="mapPanel" class="wrap" hidden>
+    <section class="answer" id="mapInfo" aria-live="polite"></section>
+    <div id="mapBox" class="mapbox" role="region" aria-label="Route map"></div>
+    <div class="mapbar">
+      <button type="button" id="mapRoute"></button>
+      <button type="button" id="mapBus"></button>
+    </div>
+    <p class="note" id="mapNote"></p>
+  </div>
+
   <div id="histPanel" class="wrap" hidden>
     <div class="controls">
       <label class="field" id="hDateField"><span id="hDateLabel"></span><select id="hDate"></select></label>
       <label class="field" id="hTripField"><span id="hTripLabel"></span><select id="hTrip"></select></label>
     </div>
     <section class="answer" id="hSummary" aria-live="polite"></section>
-    <ol class="route hist" id="hRoute"></ol>
+    <ol class="route" id="hRoute"></ol>
     <p class="note" id="hNote"></p>
   </div>
 
@@ -172,57 +195,68 @@ footer button { border: 1px solid var(--line); background: var(--surface); borde
    API_BASE: address of your Cloudflare Worker. Empty = demo mode (simulated bus).
    Timetables: services.json next to this page, made with tools/txc_to_json.py from BODS files. */
 const CONFIG = { API_BASE: "https://schoolbus.jakubspringer32.workers.dev", SERVICES_URL: "services.json", POLL_MS: 20000, STALE_MS: 150000 };
+const LEAFLET = { css: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css", js: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" };
+const TILES = { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' };
 
 const I18N = {
   en: {
     demo: "DEMO MODE: this is a simulation, not a real bus.",
     service: "Service", search: "Search services (number or name)…", school: "School", regular: "Regular", schoolTag: "school",
     pick: "Your stop", pickPh: "Choose a stop…", run: "Trip (time at this stop)",
-    willBe: "Bus due at your stop at about", planned: "Scheduled", pickHint: "Choose your stop to see when the bus arrives.",
-    onTime: "On time", late: n => `${n} min late`, early: n => `${n} min early`, passed: "Already passed",
+    lblSched: "Scheduled", lblExp: "Expected", lblActual: "Actual", pickHint: "Choose your stop to see when the bus arrives.",
+    onTime: "On time", late: n => `${n} min late`, early: n => `${n} min early`, passed: "Already passed", onTimeShort: "on time",
     noBus: "Bus not visible in the system", noBusSub: "It may not have left yet, or the trip is not running today. Check again shortly.",
     noDelay: "Position unknown, delay not reported", notRunning: "No trip running now", notRunningSub: n => `First stop of this trip: ${n}.`,
     notToday: "This trip does not run today", nextRun: d => `Next runs: ${d}.`,
-    busNow: "Bus is now", between: (a, b) => `between: ${a} → ${b}`, atStart: s => `before: ${s}`, map: "View on map",
+    busNow: "Bus is now", between: (a, b) => `between: ${a} → ${b}`, atStart: s => `before: ${s}`, map: "View on map", osm: "Open in OpenStreetMap",
     here: "BUS", updated: s => `Data ${s} s old`, stale: "No fresh data from the bus", err: "Could not load data. Try again.",
     source: "Data: Bus Open Data Service (DfT).", loadErr: "Could not load timetables (services.json).", dateLoc: "en-GB",
-    live: "Live", history: "History", histDate: "Day", histTrip: "Trip",
+    live: "Live", tabMap: "Map", history: "History", histDate: "Day", histTrip: "Trip",
     histNoDays: "No trips recorded yet. Recording starts with the next school run.", histNoTrips: "No recorded trips for this day.",
     histLoading: "Loading…", histErr: "Could not load history. Try again.", histDemo: "History is not available in demo mode.",
     histNote: "Actual times are estimated from GPS positions recorded about once a minute, so they can be a minute or so off.",
-    colStop: "Stop", colSched: "Sched.", colActual: "Actual", yourStop: "Your stop", passedAt: "Bus passed at",
-    reached: (n, t) => `Reached ${n} at ${t}`, notRecorded: "Your stop was not recorded on this trip.", dash: "–", vehicle: id => `Vehicle ${id}`
+    colStop: "Stop", colSched: "Sched.", colExp: "Expected", colActual: "Actual", yourStop: "Your stop",
+    reached: (n, t) => `Reached ${n} at ${t}`, notRecorded: "Your stop was not recorded on this trip.", dash: "–", vehicle: id => `Vehicle ${id}`, more: n => `+${n} more bus${n > 1 ? "es" : ""} on this run`,
+    mapRoute: "Whole route", mapBus: "Find the bus", mapPick: "Choose your stop to see the route on the map.",
+    mapErr: "The map could not be loaded. Check your connection and try again.",
+    mapNote: "Purple line: bus route. Dots: stops (grey = already passed). Map © OpenStreetMap contributors."
   },
   pl: {
     demo: "TRYB POKAZOWY: to symulacja, nie prawdziwy autobus.",
     service: "Linia", search: "Szukaj linii (numer lub nazwa)…", school: "Szkolne", regular: "Zwykłe", schoolTag: "szkolny",
     pick: "Twój przystanek", pickPh: "Wybierz przystanek…", run: "Kurs (godzina na tym przystanku)",
-    willBe: "Autobus będzie na przystanku ok.", planned: "Planowo", pickHint: "Wybierz swój przystanek, a pokażę, kiedy przyjedzie autobus.",
-    onTime: "Na czas", late: n => `Spóźnienie ${n} min`, early: n => `Przed czasem ${n} min`, passed: "Już przejechał",
+    lblSched: "Planowy", lblExp: "Oczekiwany", lblActual: "Rzeczywisty", pickHint: "Wybierz swój przystanek, a pokażę, kiedy przyjedzie autobus.",
+    onTime: "Na czas", late: n => `Spóźnienie ${n} min`, early: n => `Przed czasem ${n} min`, passed: "Już przejechał", onTimeShort: "na czas",
     noBus: "Autobusu nie widać w systemie", noBusSub: "Może jeszcze nie wyjechał albo kurs dziś nie jedzie. Sprawdź ponownie za chwilę.",
     noDelay: "Pozycja nieznana, brak danych o opóźnieniu", notRunning: "Teraz nie ma kursu", notRunningSub: n => `Pierwszy przystanek tego kursu: ${n}.`,
     notToday: "Dziś ten kurs nie jedzie", nextRun: d => `Następny raz: ${d}.`,
-    busNow: "Autobus jest teraz", between: (a, b) => `między: ${a} → ${b}`, atStart: s => `przed przystankiem: ${s}`, map: "Zobacz na mapie",
+    busNow: "Autobus jest teraz", between: (a, b) => `między: ${a} → ${b}`, atStart: s => `przed przystankiem: ${s}`, map: "Zobacz na mapie", osm: "Otwórz w OpenStreetMap",
     here: "AUTOBUS", updated: s => `Dane sprzed ${s} s`, stale: "Brak świeżych danych z autobusu", err: "Nie można pobrać danych. Spróbuj ponownie.",
     source: "Dane: Bus Open Data Service (DfT).", loadErr: "Nie można wczytać rozkładów (services.json).", dateLoc: "pl-PL",
-    live: "Na żywo", history: "Historia", histDate: "Dzień", histTrip: "Kurs",
+    live: "Na żywo", tabMap: "Mapa", history: "Historia", histDate: "Dzień", histTrip: "Kurs",
     histNoDays: "Brak zapisanych kursów. Zapis zaczyna się od następnego kursu szkolnego.", histNoTrips: "Brak zapisanych kursów tego dnia.",
     histLoading: "Ładowanie…", histErr: "Nie można pobrać historii. Spróbuj ponownie.", histDemo: "Historia nie jest dostępna w trybie pokazowym.",
     histNote: "Rzeczywiste godziny są szacowane z pozycji GPS zapisywanych mniej więcej raz na minutę, więc mogą się różnić o minutę.",
-    colStop: "Przystanek", colSched: "Plan", colActual: "Fakt", yourStop: "Twój przystanek", passedAt: "Autobus minął o",
-    reached: (n, t) => `Dojechał do: ${n} o ${t}`, notRecorded: "Nie zarejestrowano Twojego przystanku w tym kursie.", dash: "–", vehicle: id => `Pojazd ${id}`
+    colStop: "Przystanek", colSched: "Plan", colExp: "Oczek.", colActual: "Fakt", yourStop: "Twój przystanek",
+    reached: (n, t) => `Dojechał do: ${n} o ${t}`, notRecorded: "Nie zarejestrowano Twojego przystanku w tym kursie.", dash: "–", vehicle: id => `Pojazd ${id}`, more: n => `+${n} ${n === 1 ? "autobus" : "autobusy"} więcej na tym kursie`,
+    mapRoute: "Cała trasa", mapBus: "Znajdź autobus", mapPick: "Wybierz swój przystanek, aby zobaczyć trasę na mapie.",
+    mapErr: "Nie można wczytać mapy. Sprawdź połączenie i spróbuj ponownie.",
+    mapNote: "Fioletowa linia: trasa autobusu. Kropki: przystanki (szare = już minięte). Mapa © współtwórcy OpenStreetMap."
   }
 };
 
 const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
 const demoMode = !CONFIG.API_BASE;
 const S = { lang: store.get("gb:lang") === "pl" ? "pl" : "en", mode: "live", services: [], svc: null, stop: null, tripId: null, vehicles: [], fetchedAt: null, error: false, demoT0: Date.now() };
-const HIST = { svcId: null, days: [], date: null, trips: [], sel: null, state: "idle" }; // state: idle | loading | ok | err
+const HIST = { svcId: null, days: [], date: null, trips: [], sel: null, state: "idle", err: "" }; // state: idle | loading | ok | err
+const MAP = { ready: null, map: null, group: null, key: "", stops: [], userIdx: -1, bus: null, bounds: null };
 const t = () => I18N[S.lang];
 const trip = () => S.svc && S.svc.trips.find(x => x.id === S.tripId) || null;
 const stopInfo = code => S.svc.stops[code] || { name: code, locality: "" };
-const stopName = code => { const s = stopInfo(code); return (s.locality ? s.locality + " – " : "") + s.name; };
+const stopName = code => { const s = stopInfo(code); return esc((s.locality ? s.locality + " – " : "") + s.name); };
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
 /* ---- time ---- */
 const hhmm = ms => new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -269,12 +303,13 @@ function project(pts, lat, lon, now, win = 25) {
 }
 
 /* ---- live data ---- */
-function pickVehicle(tr, now) {
-  const first = schedMs(tr.stops[0][1], now);
+function pickVehicles(tr, now) {
+  const first = schedMs(tr.stops[0][1], now), o = tr.stops[0][0], d = tr.stops[tr.stops.length - 1][0];
+  const score = v => (v.originRef && v.originRef === o ? 1 : 0) + (v.destinationRef && v.destinationRef === d ? 1 : 0);
   const ok = S.vehicles.filter(v => v.recorded && Date.now() - v.recorded < 600000 &&
     (!v.aimedDeparture || Math.abs(v.aimedDeparture - first) < 12 * 60000));
-  ok.sort((a, b) => b.recorded - a.recorded);
-  return ok[0] || null;
+  const best = Math.max(0, ...ok.map(score));
+  return ok.filter(v => score(v) === best).sort((a, b) => b.recorded - a.recorded);
 }
 function demoVehicles() {
   const tr = trip(); if (!tr) return [];
@@ -288,7 +323,7 @@ function demoVehicles() {
 }
 async function poll() {
   if (!S.svc) return;
-  if (demoMode) { S.vehicles = demoVehicles(); S.fetchedAt = Date.now(); renderLive(); return; }
+  if (demoMode) { S.vehicles = demoVehicles(); S.fetchedAt = Date.now(); renderLive(); if (S.mode === "map") renderMap(); return; }
   try {
     const sv = S.svc, q = `line=${encodeURIComponent(sv.line)}&operator=${encodeURIComponent(sv.operator.noc || "")}&bbox=${sv.bbox || ""}`;
     const res = await fetch(`${CONFIG.API_BASE}/api/vehicles?${q}`);
@@ -298,6 +333,7 @@ async function poll() {
     S.fetchedAt = Date.now(); S.error = false;
   } catch (e) { S.error = true; }
   renderLive();
+  if (S.mode === "map") renderMap();
 }
 
 /* ---- live status logic ---- */
@@ -306,26 +342,32 @@ function delayText(d) {
   const L = t(), m = Math.round(d / 60);
   return d > 60 ? L.late(m) : d < -60 ? L.early(Math.abs(m)) : L.onTime;
 }
+function deltaText(d) { const m = Math.round(d / 60); return m > 0 ? `+${m} min` : m < 0 ? `−${-m} min` : t().onTimeShort; }
 function analyse(now) {
   const tr = trip();
   const pts = tr.stops.map(([a, tm]) => ({ a, ...stopInfo(a), ms: schedMs(tm, now) }));
   const first = pts[0].ms, last = pts[pts.length - 1].ms;
   const runs = runsOn(tr, now), inWindow = runs && now > first - 25 * 60000 && now < last + 15 * 60000;
-  const v = inWindow ? pickVehicle(tr, now) : null;
-  let prog = null, d = null;
-  if (v) {
-    const pr = v.lat != null ? project(pts, v.lat, v.lon, now) : null;
-    if (pr) prog = pr.p;
-    d = v.delaySec != null ? v.delaySec : pr ? Math.round((v.posTime - pr.schedAt) / 1000) : null;
-    if (d != null && prog === 0 && d < 0) d = 0; // waiting at the first stop cannot be "early"
-  }
+  const myIdx = pts.findIndex(p => p.a === S.stop);
+  const info = vv => {
+    const pr = vv.lat != null ? project(pts, vv.lat, vv.lon, now) : null;
+    let dd = vv.delaySec != null ? vv.delaySec : pr ? Math.round((vv.posTime - pr.schedAt) / 1000) : null;
+    if (dd != null && pr && pr.p === 0 && dd < 0) dd = 0; // waiting at the first stop cannot be "early"
+    return { v: vv, prog: pr ? pr.p : null, d: dd };
+  };
+  const all = inWindow ? pickVehicles(tr, now).map(info) : [];
+  // several buses on one run: follow the one that is closest before my stop
+  const before = all.filter(x => x.prog != null && myIdx >= 0 && x.prog < myIdx).sort((a, b) => b.prog - a.prog);
+  const main = before[0] || all[0] || null;
+  const v = main ? main.v : null, prog = main ? main.prog : null, d = main ? main.d : null;
+  const others = all.filter(x => x !== main).map(x => x.v);
   const rows = pts.map((p, i) => {
     const exp = d != null ? p.ms + d * 1000 : null;
     const passed = !!v && (prog != null ? i <= prog : exp != null && exp < now - 30000);
     return { i, a: p.a, ms: p.ms, exp, passed };
   });
   const status = v && d != null ? classify(d) : "idle";
-  return { rows, runs, inWindow, v, d, prog, status, first, nextIdx: v ? rows.findIndex(r => !r.passed) : -1 };
+  return { rows, runs, inWindow, v, d, prog, others, status, first, nextIdx: v ? rows.findIndex(r => !r.passed) : -1 };
 }
 function verdict(row, A) {
   const L = t();
@@ -368,7 +410,7 @@ function computeActuals(tr, samples) {
 
 async function histFetch(path) {
   const res = await fetch(CONFIG.API_BASE + path);
-  if (!res.ok) throw new Error(res.status);
+  if (!res.ok) throw new Error("HTTP " + res.status);
   return res.json();
 }
 const histQuery = () => `line=${encodeURIComponent(S.svc.line)}&operator=${encodeURIComponent(S.svc.operator.noc || "")}`;
@@ -383,7 +425,7 @@ async function histLoadDays() {
     if (!days.includes(HIST.date)) HIST.date = days[0] || null;
     if (HIST.date) { await histLoadDay(); return; }
     HIST.trips = []; HIST.sel = null; HIST.state = "ok";
-  } catch (e) { HIST.state = "err"; }
+  } catch (e) { HIST.state = "err"; HIST.err = String(e.message || e); }
   renderHistory();
 }
 async function histLoadDay() {
@@ -394,12 +436,15 @@ async function histLoadDay() {
     if (svc !== S.svc) return;
     HIST.trips = raw.map(r => {
       const dep = londonHHMM(r.aimed);
-      const tr = svc.trips.find(x => x.depart === dep && (!r.originRef || x.stops[0][0] === r.originRef));
+      const wd = (new Date(r.aimed).getUTCDay() + 6) % 7 + 1;
+      const c = svc.trips.filter(x => x.depart === dep && (!r.originRef || x.stops[0][0] === r.originRef));
+      const tr = c.find(x => (x.days || [wd]).includes(wd) && (!r.destinationRef || x.stops[x.stops.length - 1][0] === r.destinationRef)) ||
+        c.find(x => (x.days || [wd]).includes(wd)) || c[0];
       return tr ? { raw: r, trip: tr, dep } : null;
     }).filter(Boolean).sort((a, b) => a.raw.aimed - b.raw.aimed);
     histPickTrip(true);
     HIST.state = "ok";
-  } catch (e) { HIST.state = "err"; }
+  } catch (e) { HIST.state = "err"; HIST.err = String(e.message || e); }
   renderHistory();
 }
 function histPickTrip(force) {
@@ -414,7 +459,7 @@ function histPickTrip(force) {
 function renderServiceSelect() {
   const L = t(), q = $("svcQ").value.trim().toLowerCase();
   const match = s => !q || (s.line + " " + (s.description || "") + " " + (s.operator.name || "")).toLowerCase().includes(q);
-  const opt = s => `<option value="${s.id}"${S.svc && s.id === S.svc.id ? " selected" : ""}>${s.line} · ${s.operator.name || ""}${s.kind === "school" ? " · " + L.schoolTag : ""}</option>`;
+  const opt = s => `<option value="${esc(s.id)}"${S.svc && s.id === S.svc.id ? " selected" : ""}>${esc(s.line)} · ${esc(s.operator.name || "")}${s.kind === "school" ? " · " + L.schoolTag : ""}</option>`;
   const school = S.services.filter(s => s.kind === "school" && match(s)), reg = S.services.filter(s => s.kind !== "school" && match(s));
   $("svcSel").innerHTML = (school.length && reg.length)
     ? `<optgroup label="${L.school}">${school.map(opt).join("")}</optgroup><optgroup label="${L.regular}">${reg.map(opt).join("")}</optgroup>`
@@ -430,10 +475,21 @@ function renderStopSelect() {
   });
   let html = `<option value="">${L.pickPh}</option>`;
   groups.forEach((stops, dest) => {
-    html += `<optgroup label="→ ${dest}">` + [...stops].map(([a, times]) =>
-      `<option value="${a}"${a === S.stop ? " selected" : ""}>${times.length === 1 ? times[0] + " · " : ""}${stopName(a)}</option>`).join("") + `</optgroup>`;
+    html += `<optgroup label="→ ${esc(dest)}">` + [...stops].map(([a, times]) =>
+      `<option value="${esc(a)}"${a === S.stop ? " selected" : ""}>${times.length === 1 ? times[0] + " · " : ""}${stopName(a)}</option>`).join("") + `</optgroup>`;
   });
   $("stopSel").innerHTML = html;
+}
+function garageTag(tr) {
+  const g = S.svc.garages || {};
+  return tr.garage && Object.keys(g).length > 1 ? " · " + esc(g[tr.garage] || tr.garage) : "";
+}
+function daysText(tr) {
+  const N = S.lang === "pl" ? ["pn", "wt", "śr", "cz", "pt", "sb", "nd"] : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const d = tr.days || [];
+  if (d.length === 7) return "";
+  if (d.length > 2 && d[d.length - 1] - d[0] === d.length - 1) return N[d[0] - 1] + "–" + N[d[d.length - 1] - 1];
+  return d.map(x => N[x - 1]).join(", ");
 }
 function chooseTrip(keepId) {
   const L = t(); $("runField").hidden = true;
@@ -442,11 +498,12 @@ function chooseTrip(keepId) {
   const now = Date.now();
   const at = tr => schedMs(tr.stops.find(([a]) => a === S.stop)[1], now);
   let pick = cands.find(tr => tr.id === keepId);
-  if (!pick) pick = cands.find(tr => at(tr) + 20 * 60000 >= now) || cands[cands.length - 1];
+  const today = cands.filter(tr => runsOn(tr, now)), pool = today.length ? today : cands;
+  if (!pick) pick = pool.find(tr => at(tr) + 20 * 60000 >= now) || pool[pool.length - 1];
   S.tripId = pick ? pick.id : null;
   if (cands.length > 1) {
     $("runField").hidden = false; $("runLabel").textContent = L.run;
-    $("runSel").innerHTML = cands.map(tr => `<option value="${tr.id}"${tr.id === S.tripId ? " selected" : ""}>${hhmm(at(tr))} → ${tr.dest}</option>`).join("");
+    $("runSel").innerHTML = cands.map(tr => `<option value="${esc(tr.id)}"${tr.id === S.tripId ? " selected" : ""}>${hhmm(at(tr))} → ${esc(tr.dest)}${garageTag(tr)}${runsOn(tr, now) ? "" : " · " + esc(daysText(tr))}</option>`).join("");
   }
 }
 function setService(id, fresh) {
@@ -458,20 +515,24 @@ function setService(id, fresh) {
   S.vehicles = []; S.demoT0 = Date.now();
   HIST.svcId = null; HIST.date = null; HIST.trips = []; HIST.sel = null; HIST.state = "idle";
   renderServiceSelect(); renderStopSelect(); chooseTrip(); renderStatic(); renderLive(); poll();
+  if (S.mode === "map") renderMap();
   if (S.mode === "hist") histLoadDays();
 }
 function setMode(m) {
   S.mode = m;
-  $("livePanel").hidden = m !== "live"; $("histPanel").hidden = m !== "hist";
-  $("tabLive").setAttribute("aria-selected", String(m === "live")); $("tabHist").setAttribute("aria-selected", String(m === "hist"));
-  if (m === "hist") { if (HIST.svcId !== S.svc.id) histLoadDays(); else { histPickTrip(false); renderHistory(); } }
+  $("livePanel").hidden = m !== "live"; $("mapPanel").hidden = m !== "map"; $("histPanel").hidden = m !== "hist";
+  $("tabLive").setAttribute("aria-selected", String(m === "live"));
+  $("tabMap").setAttribute("aria-selected", String(m === "map"));
+  $("tabHist").setAttribute("aria-selected", String(m === "hist"));
+  if (m === "map" && S.svc) renderMap();
+  if (m === "hist" && S.svc) { if (HIST.svcId !== S.svc.id) histLoadDays(); else { histPickTrip(false); renderHistory(); } }
 }
 
 /* ---- render ---- */
 function renderStatic() {
   const L = t(), tr = trip(), sv = S.svc;
   $("svcLabel").textContent = L.service; $("stopLabel").textContent = L.pick;
-  $("tabLive").textContent = L.live; $("tabHist").textContent = L.history;
+  $("tabLive").textContent = L.live; $("tabMap").textContent = L.tabMap; $("tabHist").textContent = L.history;
   $("num").textContent = sv.line;
   if (tr) { $("dest").textContent = tr.dest; $("via").textContent = `${stopInfo(tr.stops[0][0]).locality} → ${stopInfo(tr.stops[tr.stops.length - 1][0]).locality}`; }
   else { $("dest").textContent = sv.description || ""; $("via").textContent = sv.operator.name || ""; }
@@ -480,6 +541,35 @@ function renderStatic() {
   $("demo").hidden = !demoMode; $("demo").textContent = L.demo;
   $("source").textContent = L.source;
 }
+
+/* card for "my stop": scheduled + expected time, status, where the bus is now */
+function answerHtml(A, tr, now, inMap) {
+  const L = t();
+  const mine = A.rows.find(r => r.a === S.stop) || A.rows[0];
+  const vd = verdict(mine, A), hasExp = mine.exp != null && !mine.passed, ecls = hasExp ? classify(A.d) : "idle";
+  let html = `<div class="k">${L.yourStop}: ${stopName(mine.a)}</div>
+    <div class="pair">
+      <div class="cell"><span class="lbl">${L.lblSched}</span><span class="big">${hhmm(mine.ms)}</span></div>
+      <div class="cell ${ecls}"><span class="lbl">${L.lblExp}</span><span class="big tm ${ecls}">${hasExp ? hhmm(mine.exp) : L.dash}</span></div>
+    </div>
+    <div class="row"><span class="chip ${vd.cls}">${vd.text}</span></div>`;
+  if (!A.runs) { const n = nextRunText(tr, now); if (n) html += `<div class="sub">${L.nextRun(n)}</div>`; }
+  else if (!A.inWindow) html += `<div class="sub">${L.notRunningSub(hhmm(A.first))}</div>`;
+  else if (!A.v) html += `<div class="sub">${L.noBusSub}</div>`;
+  if (A.v && A.nextIdx >= 0) {
+    const n = A.nextIdx, v = A.v;
+    const where = n === 0 ? L.atStart(stopName(A.rows[0].a)) : L.between(stopName(A.rows[n - 1].a), stopName(A.rows[n].a));
+    let link = "";
+    if (v.lat != null) link = inMap
+      ? ` · <a href="https://www.openstreetmap.org/?mlat=${v.lat}&mlon=${v.lon}#map=16/${v.lat}/${v.lon}" target="_blank" rel="noopener">${L.osm}</a>`
+      : ` · <a href="#map" data-go="map">${L.map}</a>`;
+    const veh = v.id && v.id !== "DEMO" ? ` · ${esc(L.vehicle(v.id))}` : "";
+    html += `<div class="sub"><strong>${L.busNow}</strong> ${where}${link}${veh}</div>`;
+    if (A.others && A.others.length) html += `<div class="sub">${L.more(A.others.length)}</div>`;
+  }
+  return html;
+}
+
 function renderLive() {
   if (!S.svc) return;
   const L = t(), tr = trip();
@@ -488,34 +578,18 @@ function renderLive() {
     $("route").innerHTML = ""; $("updated").textContent = ""; return;
   }
   const now = nowMs(), A = analyse(now);
-  const mine = A.rows.find(r => r.a === S.stop) || A.rows[0];
-  const vd = verdict(mine, A);
-  const big = mine.exp != null && !mine.passed ? hhmm(mine.exp) : hhmm(mine.ms);
-  let html = `<div class="k">${L.willBe}</div>
-    <div class="row"><span class="big">${big}</span><span class="chip ${vd.cls}">${vd.text}</span></div>
-    <div class="sub">${L.planned} ${hhmm(mine.ms)} · ${stopName(mine.a)}</div>`;
-  if (!A.runs) { const n = nextRunText(tr, now); if (n) html += `<div class="sub">${L.nextRun(n)}</div>`; }
-  else if (!A.inWindow) html += `<div class="sub">${L.notRunningSub(hhmm(A.first))}</div>`;
-  else if (!A.v) html += `<div class="sub">${L.noBusSub}</div>`;
-  if (A.v && A.nextIdx >= 0) {
-    const n = A.nextIdx, v = A.v;
-    const where = n === 0 ? L.atStart(stopName(A.rows[0].a)) : L.between(stopName(A.rows[n - 1].a), stopName(A.rows[n].a));
-    const link = v.lat != null ? ` · <a href="https://www.openstreetmap.org/?mlat=${v.lat}&mlon=${v.lon}#map=16/${v.lat}/${v.lon}" target="_blank" rel="noopener">${L.map}</a>` : "";
-    const veh = v.id && v.id !== "DEMO" ? ` · ${L.vehicle(v.id)}` : "";
-    html += `<div class="sub"><strong>${L.busNow}</strong> ${where}${link}${veh}</div>`;
-  }
-  $("answer").innerHTML = html;
+  $("answer").innerHTML = answerHtml(A, tr, now, false);
 
-  let rows = "";
+  let rows = `<li class="head"><span></span><span>${L.colStop}</span><span class="c">${L.colSched}</span><span class="c">${L.colExp}</span></li>`;
   A.rows.forEach((r, i) => {
-    if (A.v && i === A.nextIdx) rows += `<li class="bus"><span class="glyph">▶</span><span>${L.here}</span><span></span></li>`;
+    if (A.v && i === A.nextIdx) rows += `<li class="bus"><span class="glyph">▶</span><span>${L.here}</span></li>`;
     const st = stopInfo(r.a), cls = [r.passed ? "passed" : "", r.a === S.stop ? "mine" : ""].join(" ").trim();
-    const late = r.exp != null && !r.passed && Math.abs(r.exp - r.ms) >= 60000;
-    const cell = late ? `<s>${hhmm(r.ms)}</s><span class="e ${A.status}">${hhmm(r.exp)}</span>`
-      : `<span class="${r.exp != null && !r.passed ? "e ok" : ""}">${hhmm(r.ms)}</span>`;
-    rows += `<li class="${cls}"><span class="dot"></span><span class="nm">${st.name}<small>${st.locality}</small></span><span class="times">${cell}</span></li>`;
+    const cell = r.passed ? `<span class="none">✓</span>`
+      : r.exp != null ? `<span class="e ${A.status}">${hhmm(r.exp)}</span><small class="e ${A.status}">${deltaText(A.d)}</small>`
+      : `<span class="none">${L.dash}</span>`;
+    rows += `<li class="${cls}"><span class="dot"></span><span class="nm">${esc(st.name)}<small>${esc(st.locality)}</small></span><span class="c">${hhmm(r.ms)}</span><span class="c">${cell}</span></li>`;
   });
-  if (A.v && A.nextIdx < 0) rows += `<li class="bus"><span class="glyph">▶</span><span>${L.here}</span><span></span></li>`;
+  if (A.v && A.nextIdx < 0) rows += `<li class="bus"><span class="glyph">▶</span><span>${L.here}</span></li>`;
   $("route").innerHTML = rows;
 
   let up = "";
@@ -534,7 +608,7 @@ function renderHistory() {
   $("hDateField").hidden = true; $("hTripField").hidden = true;
   if (demoMode) return msg(L.histDemo);
   if (HIST.state === "loading") return msg(L.histLoading);
-  if (HIST.state === "err") return msg(L.histErr);
+  if (HIST.state === "err") return msg(`${L.histErr} (${esc(HIST.err)})`);
   if (!HIST.days.length) return msg(L.histNoDays);
 
   const dl = d => new Date(d + "T12:00:00Z").toLocaleDateString(L.dateLoc, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
@@ -544,7 +618,7 @@ function renderHistory() {
   if (!h) return msg(L.histNoTrips);
   if (HIST.trips.length > 1) {
     $("hTripField").hidden = false;
-    $("hTrip").innerHTML = HIST.trips.map((x, i) => `<option value="${i}"${i === HIST.sel ? " selected" : ""}>${x.dep} → ${x.trip.dest}</option>`).join("");
+    $("hTrip").innerHTML = HIST.trips.map((x, i) => `<option value="${i}"${i === HIST.sel ? " selected" : ""}>${x.dep} → ${esc(x.trip.dest)}</option>`).join("");
   }
 
   const tr = h.trip, act = computeActuals(tr, h.raw.samples), base = h.raw.samples[0][0];
@@ -554,10 +628,13 @@ function renderHistory() {
 
   let html = "";
   if (mi >= 0 && act[mi] != null) {
-    const d = diff(mi);
+    const d = diff(mi), c = classify(d);
     html += `<div class="k">${L.yourStop}: ${stopName(S.stop)}</div>
-      <div class="row"><span class="big">${hhmm(act[mi])}</span><span class="chip ${classify(d)}">${delayText(d)}</span></div>
-      <div class="sub">${L.planned} ${hhmm(sched[mi])} · ${L.passedAt} ${hhmm(act[mi])}</div>`;
+      <div class="pair">
+        <div class="cell"><span class="lbl">${L.lblSched}</span><span class="big">${hhmm(sched[mi])}</span></div>
+        <div class="cell ${c}"><span class="lbl">${L.lblActual}</span><span class="big tm ${c}">${hhmm(act[mi])}</span></div>
+      </div>
+      <div class="row"><span class="chip ${c}">${delayText(d)}</span></div>`;
   } else if (mi >= 0) {
     html += `<div class="k">${L.yourStop}: ${stopName(S.stop)}</div><div class="sub">${L.notRecorded}</div>`;
   }
@@ -565,16 +642,94 @@ function renderHistory() {
     const d = diff(li);
     html += `<div class="row"><span class="sub">${L.reached(stopName(tr.stops[li][0]), hhmm(act[li]))}</span><span class="chip ${classify(d)}">${delayText(d)}</span></div>`;
   }
-  box.innerHTML = (html || `<div class="sub">${L.histNoTrips}</div>`) + (h.raw.vehicle ? `<div class="sub">${L.vehicle(h.raw.vehicle)}</div>` : "");
+  box.innerHTML = (html || `<div class="sub">${L.histNoTrips}</div>`) + (h.raw.vehicle ? `<div class="sub">${esc(L.vehicle(h.raw.vehicle))}</div>` : "");
 
   let rows = `<li class="head"><span></span><span>${L.colStop}</span><span class="c">${L.colSched}</span><span class="c">${L.colActual}</span></li>`;
   tr.stops.forEach(([a], i) => {
     const st = stopInfo(a), d = diff(i);
     const cell = d == null ? `<span class="none">${L.dash}</span>`
-      : `<span class="e ${classify(d)}">${hhmm(act[i])}</span><small class="e ${classify(d)}">${Math.round(d / 60) > 0 ? "+" : Math.round(d / 60) < 0 ? "−" : ""}${Math.abs(Math.round(d / 60))} min</small>`;
-    rows += `<li class="${a === S.stop ? "mine" : ""}"><span class="dot"></span><span class="nm">${st.name}<small>${st.locality}</small></span><span class="c">${hhmm(sched[i])}</span><span class="c">${cell}</span></li>`;
+      : `<span class="e ${classify(d)}">${hhmm(act[i])}</span><small class="e ${classify(d)}">${deltaText(d)}</small>`;
+    rows += `<li class="${a === S.stop ? "mine" : ""}"><span class="dot"></span><span class="nm">${esc(st.name)}<small>${esc(st.locality)}</small></span><span class="c">${hhmm(sched[i])}</span><span class="c">${cell}</span></li>`;
   });
   list.innerHTML = rows;
+}
+
+/* ---- map: route, stops, bus (Leaflet + OpenStreetMap, loaded only when the Map tab is opened) ---- */
+function loadLeaflet() {
+  if (MAP.ready) return MAP.ready;
+  MAP.ready = new Promise((resolve, reject) => {
+    if (window.L && window.L.map) return resolve(window.L);
+    const link = document.createElement("link");
+    link.rel = "stylesheet"; link.href = LEAFLET.css; document.head.appendChild(link);
+    const js = document.createElement("script");
+    js.src = LEAFLET.js;
+    js.onload = () => window.L ? resolve(window.L) : (MAP.ready = null, reject(new Error("leaflet")));
+    js.onerror = () => { MAP.ready = null; reject(new Error("leaflet")); };
+    document.head.appendChild(js);
+  });
+  return MAP.ready;
+}
+const stopStyle = passed => ({ radius: 4, weight: 2, color: passed ? css("--muted") : css("--accent"), fillColor: passed ? css("--line") : css("--surface"), fillOpacity: 1 });
+
+async function renderMap() {
+  if (S.mode !== "map" || !S.svc) return;
+  const L = t(), tr = trip(), info = $("mapInfo");
+  $("mapRoute").textContent = L.mapRoute; $("mapBus").textContent = L.mapBus; $("mapNote").textContent = L.mapNote;
+  if (!tr) {
+    info.innerHTML = `<div class="sub">${L.mapPick}</div>`;
+    $("mapBox").hidden = true; $("mapRoute").disabled = true; $("mapBus").disabled = true; return;
+  }
+  $("mapBox").hidden = false; $("mapRoute").disabled = false;
+  let Lf;
+  try { Lf = await loadLeaflet(); }
+  catch (e) { info.innerHTML = `<div class="sub">${L.mapErr}</div>`; return; }
+  if (S.mode !== "map" || trip() !== tr) return;      // the person moved on while the map library was loading
+  if (!MAP.map) {
+    MAP.map = Lf.map("mapBox", { zoomControl: true });
+    Lf.tileLayer(TILES.url, { maxZoom: 19, attribution: TILES.attribution }).addTo(MAP.map);
+    MAP.group = Lf.layerGroup().addTo(MAP.map);
+    MAP.map.setView([52.6, -1.95], 12);
+  }
+  MAP.map.invalidateSize();
+
+  const now = nowMs(), A = analyse(now);
+  info.innerHTML = answerHtml(A, tr, now, true);
+
+  const key = S.svc.id + "|" + tr.id + "|" + S.stop;
+  if (MAP.key !== key) {                               // draw the route once per trip / stop
+    MAP.key = key; MAP.group.clearLayers(); MAP.stops = []; MAP.bus = null; MAP.others = []; MAP.userIdx = -1;
+    const pts = tr.stops.map(([a]) => [stopInfo(a).lat, stopInfo(a).lon]);
+    const path = tr.shape && tr.shape.length > 1 ? tr.shape : pts;
+    const poly = Lf.polyline(path, { color: css("--accent"), weight: 5, opacity: .85, lineJoin: "round" }).addTo(MAP.group);
+    MAP.bounds = poly.getBounds();
+    tr.stops.forEach(([a, tm], i) => {
+      if (stopInfo(a).lat == null) return;
+      const mine = a === S.stop, tip = `${tm} · ${stopName(a)}`;
+      const m = mine
+        ? Lf.circleMarker(pts[i], { radius: 9, weight: 3, color: "#fff", fillColor: css("--accent"), fillOpacity: 1 }).bindTooltip(`${L.yourStop}: ${stopName(a)}`, { permanent: true, direction: "top", offset: [0, -8] })
+        : Lf.circleMarker(pts[i], stopStyle(false)).bindTooltip(tip);
+      m.addTo(MAP.group);
+      if (mine) MAP.userIdx = i; else MAP.stops.push([m, i]);
+    });
+    MAP.map.fitBounds(MAP.bounds, { padding: [20, 20] });
+  }
+  MAP.stops.forEach(([m, i]) => m.setStyle(stopStyle(!!A.rows[i].passed)));
+
+  if (A.v && A.v.lat != null) {                        // bus marker
+    const ll = [A.v.lat, A.v.lon];
+    const tip = (A.v.id && A.v.id !== "DEMO" ? esc(L.vehicle(A.v.id)) : L.here) + (A.d != null ? " · " + delayText(A.d) : "");
+    if (!MAP.bus) {
+      MAP.bus = Lf.marker(ll, { icon: Lf.divIcon({ className: "busicon", html: `<span>${esc(S.svc.line)}</span>`, iconSize: [44, 28], iconAnchor: [22, 14] }), zIndexOffset: 1000, keyboard: false })
+        .addTo(MAP.group).bindTooltip(tip, { direction: "top", offset: [0, -14] });
+    } else { MAP.bus.setLatLng(ll); MAP.bus.setTooltipContent(tip); }
+  } else if (MAP.bus) { MAP.group.removeLayer(MAP.bus); MAP.bus = null; }
+  (MAP.others || []).forEach(m => MAP.group.removeLayer(m)); MAP.others = [];
+  (A.others || []).forEach(o => {                       // other buses on the same run
+    if (o.lat == null) return;
+    MAP.others.push(Lf.circleMarker([o.lat, o.lon], { radius: 7, weight: 2, color: "#fff", fillColor: "#888", fillOpacity: .95 })
+      .addTo(MAP.group).bindTooltip(o.id ? esc(L.vehicle(o.id)) : ""));
+  });
+  $("mapBus").disabled = !MAP.bus;
 }
 
 /* ---- events ---- */
@@ -584,15 +739,20 @@ $("stopSel").addEventListener("change", e => {
   S.stop = e.target.value || null; if (S.stop) store.set("gb:stop:" + S.svc.id, S.stop);
   S.demoT0 = Date.now(); chooseTrip(); renderStatic(); renderLive(); poll();
   histPickTrip(false); if (S.mode === "hist") renderHistory();
+  if (S.mode === "map") renderMap();
 });
-$("runSel").addEventListener("change", e => { S.tripId = e.target.value; S.demoT0 = Date.now(); renderStatic(); renderLive(); poll(); });
+$("runSel").addEventListener("change", e => { S.tripId = e.target.value; S.demoT0 = Date.now(); renderStatic(); renderLive(); poll(); if (S.mode === "map") renderMap(); });
 $("tabLive").addEventListener("click", () => setMode("live"));
+$("tabMap").addEventListener("click", () => setMode("map"));
 $("tabHist").addEventListener("click", () => setMode("hist"));
+$("answer").addEventListener("click", e => { const a = e.target.closest("[data-go]"); if (a) { e.preventDefault(); setMode(a.dataset.go); } });
+$("mapRoute").addEventListener("click", () => { if (MAP.map && MAP.bounds) MAP.map.fitBounds(MAP.bounds, { padding: [20, 20] }); });
+$("mapBus").addEventListener("click", () => { if (MAP.map && MAP.bus) MAP.map.setView(MAP.bus.getLatLng(), Math.max(MAP.map.getZoom(), 15)); });
 $("hDate").addEventListener("change", e => { HIST.date = e.target.value; histLoadDay(); });
 $("hTrip").addEventListener("change", e => { HIST.sel = +e.target.value; renderHistory(); });
 $("langBtn").addEventListener("click", () => {
   S.lang = S.lang === "pl" ? "en" : "pl"; store.set("gb:lang", S.lang);
-  if (S.svc) { renderServiceSelect(); renderStopSelect(); chooseTrip(S.tripId); renderStatic(); renderLive(); renderHistory(); }
+  if (S.svc) { renderServiceSelect(); renderStopSelect(); chooseTrip(S.tripId); renderStatic(); renderLive(); renderHistory(); if (S.mode === "map") { MAP.key = ""; renderMap(); } }
 });
 
 (async function start() {
