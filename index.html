@@ -3,18 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Where Is My Bus</title>
+<title>School Bus Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#7d1a3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="School Bus">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Doto:wght@700;900&display=swap">
 <style>
 /* Layout: one column. Answer for "my stop" first (scheduled + expected time), then the whole route like a bus-stop pole. */
 :root {
   color-scheme: light;
-  --bg: #f1f3ef;
+  --bg: #e8eaed;
   --surface: #ffffff;
-  --fg: #18201b;
-  --muted: #5d685f;
-  --line: #d5dad2;
-  --accent: #5a2a86;
+  --fg: #1b1d21;
+  --muted: #5a6068;
+  --line: #cdd1d7;
+  --accent: #7d1a3a;
   --accent-fg: #ffffff;
   --ok: #1d7a3e;
   --ok-bg: #dff1e4;
@@ -22,27 +29,27 @@
   --warn-bg: #fbecc8;
   --bad: #b3261e;
   --bad-bg: #f9dedc;
-  --idle: #5d685f;
-  --idle-bg: #e4e7e1;
+  --idle: #5a6068;
+  --idle-bg: #dcdfe4;
   --blind-bg: #0d0f12;
-  --blind-fg: #ffb000;
+  --blind-fg: #f4f6fa;
   --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-blind: "Doto", "Courier New", monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #14181a; --surface: #1d2326; --fg: #e8ede9; --muted: #9aa69d; --line: #2f383b;
-    --accent: #c9a2f0; --accent-fg: #1a1024;
+    --bg: #15161a; --surface: #202227; --fg: #eceef1; --muted: #9ba1aa; --line: #33363d;
+    --accent: #e8a3ba; --accent-fg: #2a0a14;
     --ok: #6fd391; --ok-bg: #1b3526; --warn: #f0c35a; --warn-bg: #3a2f10;
-    --bad: #ff9a92; --bad-bg: #44201d; --idle: #9aa69d; --idle-bg: #2a3235;
+    --bad: #ff9a92; --bad-bg: #44201d; --idle: #9ba1aa; --idle-bg: #2b2e34;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #14181a; --surface: #1d2326; --fg: #e8ede9; --muted: #9aa69d; --line: #2f383b;
-  --accent: #c9a2f0; --accent-fg: #1a1024;
+  --bg: #15161a; --surface: #202227; --fg: #eceef1; --muted: #9ba1aa; --line: #33363d;
+  --accent: #e8a3ba; --accent-fg: #2a0a14;
   --ok: #6fd391; --ok-bg: #1b3526; --warn: #f0c35a; --warn-bg: #3a2f10;
-  --bad: #ff9a92; --bad-bg: #44201d; --idle: #9aa69d; --idle-bg: #2a3235;
+  --bad: #ff9a92; --bad-bg: #44201d; --idle: #9ba1aa; --idle-bg: #2b2e34;
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
@@ -62,11 +69,16 @@ button, select, input { font: inherit; color: inherit; }
 .demo { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
 .fail { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
 
-/* bus destination blind */
-.blind { background: var(--blind-bg); color: var(--blind-fg); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 16px; }
-.blind .num { font-family: var(--font-blind); font-weight: 900; font-size: 56px; line-height: 1; letter-spacing: 2px; }
-.blind .dest { font-family: var(--font-blind); font-weight: 700; font-size: 18px; line-height: 1.2; text-transform: uppercase; min-width: 0; overflow-wrap: anywhere; }
-.blind .via { font-family: var(--font-body); font-size: 13px; color: #c9b27a; margin-top: 4px; text-transform: none; }
+/* app bar: burgundy on platinum */
+.appbar { display: flex; align-items: center; gap: 10px; background: #26272b; color: #fff; border-bottom: 4px solid #8a1f43; border-radius: 12px; padding: 8px 14px; font-weight: 700; letter-spacing: .2px; }
+.appbar img { width: 26px; height: 26px; border-radius: 6px; }
+.appbar span { font-size: 15px; }
+/* bus destination blind (white dot-matrix with green edge, like the Platinum buses: destination left, number right) */
+.blind { background: var(--blind-bg); color: var(--blind-fg); border-radius: 18px; border: 2px solid #35d07f; padding: 12px 18px; display: flex; align-items: center; gap: 16px; }
+.blind .num { order: 2; margin-left: auto; font-family: var(--font-blind); font-weight: 900; font-size: 44px; line-height: 1; letter-spacing: 1px; }
+.blind .dest { order: 1; flex: 1; font-family: var(--font-blind); font-weight: 700; font-size: 19px; line-height: 1.2; text-transform: none; min-width: 0; overflow-wrap: anywhere; }
+.blind .school { font-family: var(--font-blind); font-weight: 700; font-size: 14px; line-height: 1.2; margin-top: 4px; overflow-wrap: anywhere; }
+.blind .via { font-family: var(--font-body); font-size: 13px; color: #b9bfca; margin-top: 4px; text-transform: none; }
 
 .controls { display: grid; gap: 12px; }
 label.field { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
@@ -141,9 +153,10 @@ footer button { border: 1px solid var(--line); background: var(--surface); borde
 <div class="wrap">
   <div id="demo" class="demo" hidden></div>
   <div id="fail" class="fail" hidden></div>
+  <div class="appbar"><img src="icons/icon-192.png" alt=""><span>School Bus Tracker</span></div>
   <div class="blind" aria-live="polite">
     <div class="num" id="num">159</div>
-    <div class="dest"><span id="dest"></span><div class="via" id="via"></div></div>
+    <div class="dest"><span id="dest"></span><div class="school" id="school"></div><div class="via" id="via"></div></div>
   </div>
   <div class="controls">
     <label class="field" id="svcField"><span id="svcLabel"></span>
@@ -216,7 +229,7 @@ const I18N = {
     histLoading: "Loading…", histErr: "Could not load history. Try again.", histDemo: "History is not available in demo mode.",
     histNote: "Actual times are estimated from GPS positions recorded about once a minute, so they can be a minute or so off.",
     colStop: "Stop", colSched: "Sched.", colExp: "Expected", colActual: "Actual", yourStop: "Your stop",
-    reached: (n, t) => `Reached ${n} at ${t}`, notRecorded: "Your stop was not recorded on this trip.", dash: "–", vehicle: id => `Vehicle ${id}`, more: n => `+${n} more bus${n > 1 ? "es" : ""} on this run`,
+    reached: (n, t) => `Reached ${n} at ${t}`, notRecorded: "Your stop was not recorded on this trip.", dash: "–", vehicle: id => `Vehicle ${id}`, schoolService: "School service", more: n => `+${n} more bus${n > 1 ? "es" : ""} on this run`,
     mapRoute: "Whole route", mapBus: "Find the bus", mapPick: "Choose your stop to see the route on the map.",
     mapErr: "The map could not be loaded. Check your connection and try again.",
     mapNote: "Purple line: bus route. Dots: stops (grey = already passed). Map © OpenStreetMap contributors."
@@ -238,7 +251,7 @@ const I18N = {
     histLoading: "Ładowanie…", histErr: "Nie można pobrać historii. Spróbuj ponownie.", histDemo: "Historia nie jest dostępna w trybie pokazowym.",
     histNote: "Rzeczywiste godziny są szacowane z pozycji GPS zapisywanych mniej więcej raz na minutę, więc mogą się różnić o minutę.",
     colStop: "Przystanek", colSched: "Plan", colExp: "Oczek.", colActual: "Fakt", yourStop: "Twój przystanek",
-    reached: (n, t) => `Dojechał do: ${n} o ${t}`, notRecorded: "Nie zarejestrowano Twojego przystanku w tym kursie.", dash: "–", vehicle: id => `Pojazd ${id}`, more: n => `+${n} ${n === 1 ? "autobus" : "autobusy"} więcej na tym kursie`,
+    reached: (n, t) => `Dojechał do: ${n} o ${t}`, notRecorded: "Nie zarejestrowano Twojego przystanku w tym kursie.", dash: "–", vehicle: id => `Pojazd ${id}`, schoolService: "Autobus szkolny", more: n => `+${n} ${n === 1 ? "autobus" : "autobusy"} więcej na tym kursie`,
     mapRoute: "Cała trasa", mapBus: "Znajdź autobus", mapPick: "Wybierz swój przystanek, aby zobaczyć trasę na mapie.",
     mapErr: "Nie można wczytać mapy. Sprawdź połączenie i spróbuj ponownie.",
     mapNote: "Fioletowa linia: trasa autobusu. Kropki: przystanki (szare = już minięte). Mapa © współtwórcy OpenStreetMap."
@@ -458,8 +471,8 @@ function histPickTrip(force) {
 /* ---- selects ---- */
 function renderServiceSelect() {
   const L = t(), q = $("svcQ").value.trim().toLowerCase();
-  const match = s => !q || (s.line + " " + (s.description || "") + " " + (s.operator.name || "")).toLowerCase().includes(q);
-  const opt = s => `<option value="${esc(s.id)}"${S.svc && s.id === S.svc.id ? " selected" : ""}>${esc(s.line)} · ${esc(s.operator.name || "")}${s.kind === "school" ? " · " + L.schoolTag : ""}</option>`;
+  const match = s => !q || (s.line + " " + (s.description || "") + " " + (s.school || "") + " " + (s.operator.name || "")).toLowerCase().includes(q);
+  const opt = s => `<option value="${esc(s.id)}"${S.svc && s.id === S.svc.id ? " selected" : ""}>${esc(s.line)} · ${esc(s.school || s.operator.name || "")}${s.kind === "school" ? " · " + L.schoolTag : ""}</option>`;
   const school = S.services.filter(s => s.kind === "school" && match(s)), reg = S.services.filter(s => s.kind !== "school" && match(s));
   $("svcSel").innerHTML = (school.length && reg.length)
     ? `<optgroup label="${L.school}">${school.map(opt).join("")}</optgroup><optgroup label="${L.regular}">${reg.map(opt).join("")}</optgroup>`
@@ -503,7 +516,7 @@ function chooseTrip(keepId) {
   S.tripId = pick ? pick.id : null;
   if (cands.length > 1) {
     $("runField").hidden = false; $("runLabel").textContent = L.run;
-    $("runSel").innerHTML = cands.map(tr => `<option value="${esc(tr.id)}"${tr.id === S.tripId ? " selected" : ""}>${hhmm(at(tr))} → ${esc(tr.dest)}${garageTag(tr)}${runsOn(tr, now) ? "" : " · " + esc(daysText(tr))}</option>`).join("");
+    $("runSel").innerHTML = cands.map(tr => `<option value="${esc(tr.id)}"${tr.id === S.tripId ? " selected" : ""}>${hhmm(at(tr))} → ${esc(tr.dest)} · start ${esc(tr.depart)} ${esc(stopInfo(tr.stops[0][0]).locality)}${garageTag(tr)}${runsOn(tr, now) ? "" : " · " + esc(daysText(tr))}</option>`).join("");
   }
 }
 function setService(id, fresh) {
@@ -534,8 +547,10 @@ function renderStatic() {
   $("svcLabel").textContent = L.service; $("stopLabel").textContent = L.pick;
   $("tabLive").textContent = L.live; $("tabMap").textContent = L.tabMap; $("tabHist").textContent = L.history;
   $("num").textContent = sv.line;
-  if (tr) { $("dest").textContent = tr.dest; $("via").textContent = `${stopInfo(tr.stops[0][0]).locality} → ${stopInfo(tr.stops[tr.stops.length - 1][0]).locality}`; }
-  else { $("dest").textContent = sv.description || ""; $("via").textContent = sv.operator.name || ""; }
+  const isSchool = sv.kind === "school";
+  $("school").textContent = isSchool ? (sv.school || "") : ""; $("school").hidden = !(isSchool && sv.school);
+  if (tr) { $("dest").textContent = isSchool ? L.schoolService : tr.dest; $("via").textContent = `${stopInfo(tr.stops[0][0]).locality} → ${stopInfo(tr.stops[tr.stops.length - 1][0]).locality}`; }
+  else { $("dest").textContent = isSchool ? L.schoolService : (sv.description || ""); $("via").textContent = sv.operator.name || ""; }
   document.documentElement.lang = S.lang;
   $("langBtn").textContent = S.lang === "pl" ? "EN" : "PL";
   $("demo").hidden = !demoMode; $("demo").textContent = L.demo;
