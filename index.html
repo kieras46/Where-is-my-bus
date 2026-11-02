@@ -338,7 +338,7 @@ async function poll() {
   if (!S.svc) return;
   if (demoMode) { S.vehicles = demoVehicles(); S.fetchedAt = Date.now(); renderLive(); if (S.mode === "map") renderMap(); return; }
   try {
-    const sv = S.svc, q = `line=${encodeURIComponent(sv.line)}&operator=${encodeURIComponent(sv.operator.noc || "")}&bbox=${sv.bbox || ""}`;
+    const sv = S.svc, q = `line=${encodeURIComponent(sv.line)}&operator=${encodeURIComponent((sv.liveOperators || [sv.operator.noc || ""]).join(","))}&bbox=${sv.bbox || ""}`;
     const res = await fetch(`${CONFIG.API_BASE}/api/vehicles?${q}`);
     if (!res.ok) throw new Error(res.status);
     const j = await res.json();
@@ -426,7 +426,7 @@ async function histFetch(path) {
   if (!res.ok) throw new Error("HTTP " + res.status);
   return res.json();
 }
-const histQuery = () => `line=${encodeURIComponent(S.svc.line)}&operator=${encodeURIComponent(S.svc.operator.noc || "")}`;
+const histQuery = () => `line=${encodeURIComponent(S.svc.line)}&operator=${encodeURIComponent((S.svc.liveOperators || [S.svc.operator.noc || ""]).join(","))}`;
 async function histLoadDays() {
   if (demoMode || !S.svc) { HIST.state = "idle"; renderHistory(); return; }
   const svc = S.svc;
@@ -520,9 +520,9 @@ function chooseTrip(keepId) {
   }
 }
 function setService(id, fresh) {
-  S.svc = S.services.find(s => s.id === id) || S.services[0];
+  S.svc = S.services.find(s => s.id === id) || S.services.find(s => (s.oldIds || []).includes(id)) || S.services[0];
   if (fresh) store.set("gb:svc", S.svc.id);
-  const saved = store.get("gb:stop:" + S.svc.id);
+  const saved = store.get("gb:stop:" + S.svc.id) || (S.svc.oldIds || []).map(o => store.get("gb:stop:" + o)).find(Boolean);
   const known = S.svc.trips.some(tr => tr.stops.some(([a]) => a === saved));
   S.stop = known ? saved : (demoMode && S.svc.stops["43000632501"] ? "43000632501" : null);
   S.vehicles = []; S.demoT0 = Date.now();
