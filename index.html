@@ -78,6 +78,7 @@ button, select, input { font: inherit; color: inherit; }
 .blind .num { order: 2; margin-left: auto; font-family: var(--font-blind); font-weight: 900; font-size: 44px; line-height: 1; letter-spacing: 1px; }
 .blind .dest { order: 1; flex: 1; font-family: var(--font-blind); font-weight: 700; font-size: 19px; line-height: 1.2; text-transform: none; min-width: 0; overflow-wrap: anywhere; }
 .blind .school { font-family: var(--font-blind); font-weight: 700; font-size: 14px; line-height: 1.2; margin-top: 4px; overflow-wrap: anywhere; }
+.blind .op { font-family: var(--font-body); font-size: 12px; color: #8f96a3; margin-top: 2px; }
 .blind .via { font-family: var(--font-body); font-size: 13px; color: #b9bfca; margin-top: 4px; text-transform: none; }
 
 .controls { display: grid; gap: 12px; }
@@ -156,7 +157,7 @@ footer button { border: 1px solid var(--line); background: var(--surface); borde
   <div class="appbar"><img src="icons/icon-192.png" alt=""><span>School Bus Tracker</span></div>
   <div class="blind" aria-live="polite">
     <div class="num" id="num">159</div>
-    <div class="dest"><span id="dest"></span><div class="school" id="school"></div><div class="via" id="via"></div></div>
+    <div class="dest"><span id="dest"></span><div class="school" id="school"></div><div class="via" id="via"></div><div class="op" id="op"></div></div>
   </div>
   <div class="controls">
     <label class="field" id="svcField"><span id="svcLabel"></span>
@@ -229,7 +230,7 @@ const I18N = {
     histLoading: "Loading…", histErr: "Could not load history. Try again.", histDemo: "History is not available in demo mode.",
     histNote: "Actual times are estimated from GPS positions recorded about once a minute, so they can be a minute or so off.",
     colStop: "Stop", colSched: "Sched.", colExp: "Expected", colActual: "Actual", yourStop: "Your stop",
-    reached: (n, t) => `Reached ${n} at ${t}`, notRecorded: "Your stop was not recorded on this trip.", dash: "–", vehicle: id => `Vehicle ${id}`, schoolService: "School service", more: n => `+${n} more bus${n > 1 ? "es" : ""} on this run`,
+    reached: (n, t) => `Reached ${n} at ${t}`, notRecorded: "Your stop was not recorded on this trip.", dash: "–", vehicle: id => `Vehicle ${id}`, schoolService: "School service", operatedBy: n => `Operated by ${n}`, more: n => `+${n} more bus${n > 1 ? "es" : ""} on this run`,
     mapRoute: "Whole route", mapBus: "Find the bus", mapPick: "Choose your stop to see the route on the map.",
     mapErr: "The map could not be loaded. Check your connection and try again.",
     mapNote: "Purple line: bus route. Dots: stops (grey = already passed). Map © OpenStreetMap contributors."
@@ -251,7 +252,7 @@ const I18N = {
     histLoading: "Ładowanie…", histErr: "Nie można pobrać historii. Spróbuj ponownie.", histDemo: "Historia nie jest dostępna w trybie pokazowym.",
     histNote: "Rzeczywiste godziny są szacowane z pozycji GPS zapisywanych mniej więcej raz na minutę, więc mogą się różnić o minutę.",
     colStop: "Przystanek", colSched: "Plan", colExp: "Oczek.", colActual: "Fakt", yourStop: "Twój przystanek",
-    reached: (n, t) => `Dojechał do: ${n} o ${t}`, notRecorded: "Nie zarejestrowano Twojego przystanku w tym kursie.", dash: "–", vehicle: id => `Pojazd ${id}`, schoolService: "Autobus szkolny", more: n => `+${n} ${n === 1 ? "autobus" : "autobusy"} więcej na tym kursie`,
+    reached: (n, t) => `Dojechał do: ${n} o ${t}`, notRecorded: "Nie zarejestrowano Twojego przystanku w tym kursie.", dash: "–", vehicle: id => `Pojazd ${id}`, schoolService: "Autobus szkolny", operatedBy: n => `Operator: ${n}`, more: n => `+${n} ${n === 1 ? "autobus" : "autobusy"} więcej na tym kursie`,
     mapRoute: "Cała trasa", mapBus: "Znajdź autobus", mapPick: "Wybierz swój przystanek, aby zobaczyć trasę na mapie.",
     mapErr: "Nie można wczytać mapy. Sprawdź połączenie i spróbuj ponownie.",
     mapNote: "Fioletowa linia: trasa autobusu. Kropki: przystanki (szare = już minięte). Mapa © współtwórcy OpenStreetMap."
@@ -547,6 +548,7 @@ function renderStatic() {
   $("svcLabel").textContent = L.service; $("stopLabel").textContent = L.pick;
   $("tabLive").textContent = L.live; $("tabMap").textContent = L.tabMap; $("tabHist").textContent = L.history;
   $("num").textContent = sv.line;
+  $("op").textContent = sv.operator && sv.operator.name ? L.operatedBy(sv.operator.name) : "";
   const isSchool = sv.kind === "school";
   $("school").textContent = isSchool ? (sv.school || "") : ""; $("school").hidden = !(isSchool && sv.school);
   if (tr) { $("dest").textContent = isSchool ? L.schoolService : tr.dest; $("via").textContent = `${stopInfo(tr.stops[0][0]).locality} → ${stopInfo(tr.stops[tr.stops.length - 1][0]).locality}`; }
